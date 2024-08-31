@@ -63,6 +63,6 @@ data class FormattingOptions(
     val debuggingPrintOpsAfterFormatting: Boolean = false,
 ) {
   companion object {
-    const val DEFAULT_MAX_WIDTH: Int = 100
+    const val DEFAULT_MAX_WIDTH: Int = 80
   }
 }
