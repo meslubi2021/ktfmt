@@ -162,4 +162,4 @@ See [RELEASING.md](RELEASING.md).
 
 ## License
 
-Apache License 2.0
+Mit License 
