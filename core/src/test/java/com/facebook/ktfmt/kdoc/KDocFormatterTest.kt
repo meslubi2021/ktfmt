@@ -737,7 +737,7 @@ class KDocFormatterTest {
   }
 
   @Test
-  fun testWrapingOfLinkText() {
+  fun testWrappingOfLinkText() {
     val source =
         """
              /**
@@ -2032,6 +2032,60 @@ class KDocFormatterTest {
   }
 
   @Test
+  fun testNoReorderSample() {
+    val source =
+        """
+            /**
+             * Constructs a new location range for the given file, from start to
+             * end. If the length of the range is not known, end may be null.
+             *
+             * @sample abc
+             *
+             * You might want to see another sample.
+             *
+             * @sample xyz
+             *
+             * Makes sense?
+             * @return Something
+             * @see more
+             * @sample foo
+             *
+             * Note that samples after another tag don't get special treatment.
+             */
+            """
+            .trimIndent()
+    checkFormatter(
+        FormattingTask(
+            KDocFormattingOptions(72),
+            source,
+            "    ",
+            orderedParameterNames = listOf("file", "start", "end")),
+        """
+            /**
+             * Constructs a new location range for the given file, from start to
+             * end. If the length of the range is not known, end may be null.
+             *
+             * @sample abc
+             *
+             * You might want to see another sample.
+             *
+             * @sample xyz
+             *
+             * Makes sense?
+             *
+             * @return Something
+             * @sample foo
+             *
+             * Note that samples after another tag don't get special treatment.
+             *
+             * @see more
+             */
+            """
+            .trimIndent(),
+    )
+  }
+
+  @Test
   fun testKDocOrdering() {
     // From AndroidX'
     // frameworks/support/biometric/biometric-ktx/src/main/java/androidx/biometric/auth/CredentialAuthExtensions.kt
@@ -2939,7 +2993,7 @@ class KDocFormatterTest {
 
   @Test
   fun test203584301() {
-    // https://github.com/facebookincubator/ktfmt/issues/310
+    // https://github.com/facebook/ktfmt/issues/310
     val source =
         """
             /**
@@ -3086,6 +3140,34 @@ class KDocFormatterTest {
              *   minim.
              * @property reprehenderit p esse cillum officia est do enim enim
              *   nostrud nisi d non sunt mollit id est tempor enim.
+             */
+            """
+            .trimIndent())
+  }
+
+  @Test
+  fun testPropertiesAreParams() {
+    val source =
+        """
+            /**
+             * @param bar lorem ipsum
+             * @property baz dolor sit
+             * @property foo amet, consetetur
+             */
+            """
+            .trimIndent()
+    checkFormatter(
+        FormattingTask(
+            KDocFormattingOptions(72, 72),
+            source.trim(),
+            initialIndent = "    ",
+            orderedParameterNames = listOf("foo", "bar", "baz"),
+        ),
+        """
+            /**
+             * @property foo amet, consetetur
+             * @param bar lorem ipsum
+             * @property baz dolor sit
              */
             """
             .trimIndent())
@@ -4990,7 +5072,7 @@ class KDocFormatterTest {
           end++
         }
         val word = s.substring(i, end)
-        if (i > 0 && s[i - 1] == '@' || word == "http" || word == "https" || word == "com") {
+        if ((i > 0 && s[i - 1] == '@') || word == "http" || word == "https" || word == "com") {
           // Don't translate URL prefix/suffixes and doc tags
           sb.append(word)
         } else {

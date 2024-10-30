@@ -18,6 +18,8 @@ package com.facebook.ktfmt.format
 
 import com.facebook.ktfmt.testutil.assertFormatted
 import com.facebook.ktfmt.testutil.assertThatFormatting
+import com.facebook.ktfmt.testutil.defaultTestFormattingOptions
+import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -100,7 +102,7 @@ class GoogleStyleFormatterKtTest {
         |"""
             .trimMargin()
 
-    assertThatFormatting(code).withOptions(Formatter.GOOGLE_FORMAT).isEqualTo(expected)
+    assertThatFormatting(code).isEqualTo(expected)
     // Don't add more tests here
   }
 
@@ -108,11 +110,11 @@ class GoogleStyleFormatterKtTest {
   fun `class value params are placed each in their own line`() =
       assertFormatted(
           """
-      |-----------------------------------------
+      |/////////////////////////////////////////
       |class Foo(
       |  a: Int,
       |  var b: Double,
-      |  val c: String
+      |  val c: String,
       |) {
       |  //
       |}
@@ -120,13 +122,13 @@ class GoogleStyleFormatterKtTest {
       |class Foo(
       |  a: Int,
       |  var b: Double,
-      |  val c: String
+      |  val c: String,
       |)
       |
       |class Foo(
       |  a: Int,
       |  var b: Int,
-      |  val c: Int
+      |  val c: Int,
       |) {
       |  //
       |}
@@ -134,7 +136,7 @@ class GoogleStyleFormatterKtTest {
       |class Bi(
       |  a: Int,
       |  var b: Int,
-      |  val c: Int
+      |  val c: Int,
       |) {
       |  //
       |}
@@ -144,40 +146,42 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `class type params are placed each in their own line`() =
       assertFormatted(
           """
-      |------------------------------------
+      |////////////////////////////////////
       |class Foo<
       |  TypeA : Int,
-      |  TypeC : String
+      |  TypeC : String,
       |> {
-      |  // Class name + type params too long for one line
-      |  // Type params could fit on one line but break
+      |  // Class name + type params too
+      |  // long for one line
+      |  // Type params could fit on one
+      |  // line but break
       |}
       |
       |class Foo<
       |  TypeA : Int,
       |  TypeB : Double,
-      |  TypeC : String
+      |  TypeC : String,
       |> {
-      |  // Type params can't fit on one line
+      |  // Type params can't fit on one
+      |  // line
       |}
       |
       |class Foo<
       |  TypeA : Int,
       |  TypeB : Double,
-      |  TypeC : String
+      |  TypeC : String,
       |>
       |
       |class Foo<
       |  TypeA : Int,
       |  TypeB : Double,
-      |  TypeC : String
+      |  TypeC : String,
       |>() {
       |  //
       |}
@@ -185,29 +189,30 @@ class GoogleStyleFormatterKtTest {
       |class Bi<
       |  TypeA : Int,
       |  TypeB : Double,
-      |  TypeC : String
+      |  TypeC : String,
       |>(a: Int, var b: Int, val c: Int) {
-      |  // TODO: Breaking the type param list
-      |  // should propagate to the value param list
+      |  // TODO: Breaking the type param
+      |  // list should propagate to the
+      |  //  value param list
       |}
       |
       |class C<A : Int, B : Int, C : Int> {
-      |  // Class name + type params fit on one line
+      |  // Class name + type params fit on
+      |  // one line
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `function params are placed each in their own line`() =
       assertFormatted(
           """
-      |-----------------------------------------
+      |/////////////////////////////////////////
       |fun foo12(
       |  a: Int,
       |  var b: Double,
-      |  val c: String
+      |  val c: String,
       |) {
       |  //
       |}
@@ -215,19 +220,19 @@ class GoogleStyleFormatterKtTest {
       |fun foo12(
       |  a: Int,
       |  var b: Double,
-      |  val c: String
+      |  val c: String,
       |)
       |
       |fun foo12(
       |  a: Int,
       |  var b: Double,
-      |  val c: String
+      |  val c: String,
       |) = 5
       |
       |fun foo12(
       |  a: Int,
       |  var b: Int,
-      |  val c: Int
+      |  val c: Int,
       |) {
       |  //
       |}
@@ -235,7 +240,7 @@ class GoogleStyleFormatterKtTest {
       |fun bi12(
       |  a: Int,
       |  var b: Int,
-      |  val c: Int
+      |  val c: Int,
       |) {
       |  //
       |}
@@ -245,44 +250,42 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `return type doesn't fit in one line`() =
       assertFormatted(
           """
-      |--------------------------------------------------
+      |//////////////////////////////////////////////////
       |interface X {
       |  fun f(
       |    arg1: Arg1Type,
-      |    arg2: Arg2Type
+      |    arg2: Arg2Type,
       |  ): Map<String, Map<String, Double>>? {
       |    //
       |  }
       |
       |  fun functionWithGenericReturnType(
       |    arg1: Arg1Type,
-      |    arg2: Arg2Type
+      |    arg2: Arg2Type,
       |  ): Map<String, Map<String, Double>>? {
       |    //
       |  }
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `indent parameters after a break when there's a lambda afterwards`() =
       assertFormatted(
           """
-      |---------------------------
+      |///////////////////////////
       |class C {
       |  fun method() {
       |    Foo.FooBar(
       |        param1,
-      |        param2
+      |        param2,
       |      )
       |      .apply {
       |        //
@@ -292,14 +295,13 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `no forward propagation of breaks in call expressions (at trailing lambda)`() =
       assertFormatted(
           """
-      |--------------------------
+      |//////////////////////////
       |fun test() {
       |  foo_bar_baz__zip<A>(b) {
       |    c
@@ -310,14 +312,13 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `forward propagation of breaks in call expressions (at value args)`() =
       assertFormatted(
           """
-      |----------------------
+      |//////////////////////
       |fun test() {
       |  foo_bar_baz__zip<A>(
       |    b
@@ -335,14 +336,13 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `forward propagation of breaks in call expressions (at type args)`() =
       assertFormatted(
           """
-      |-------------------
+      |///////////////////
       |fun test() {
       |  foo_bar_baz__zip<
       |    A
@@ -361,26 +361,24 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `expected indent in methods following single-line strings`() =
       assertFormatted(
           """
-      |-------------------------
+      |/////////////////////////
       |"Hello %s"
       |  .format(expression)
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `forced break between multi-line strings and their selectors`() =
       assertFormatted(
           """
-      |-------------------------
+      |/////////////////////////
       |val STRING =
       |  $TQ
       |  |foo
@@ -390,7 +388,7 @@ class GoogleStyleFormatterKtTest {
       |val STRING =
       |  $TQ
       |  |foo
-      |  |----------------------------------$TQ
+      |  |//////////////////////////////////$TQ
       |    .wouldntFit()
       |
       |val STRING =
@@ -401,56 +399,54 @@ class GoogleStyleFormatterKtTest {
       |    .secondLink()
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `properly break fully qualified nested user types`() =
       assertFormatted(
           """
-      |-------------------------------------------------------
+      |///////////////////////////////////////////////////////
       |val complicated:
       |  com.example.interesting.SomeType<
       |    com.example.interesting.SomeType<Int, Nothing>,
       |    com.example.interesting.SomeType<
       |      com.example.interesting.SomeType<Int, Nothing>,
-      |      Nothing
-      |    >
+      |      Nothing,
+      |    >,
       |  > =
       |  DUMMY
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `don't one-line lambdas following argument breaks`() =
       assertFormatted(
           """
-      |------------------------------------------------------------------------
+      |///////////////////////////////////////////////////////////////////////////////
       |class Foo : Bar() {
       |  fun doIt() {
       |    // don't break in lambda, no argument breaks found
       |    fruit.forEach { eat(it) }
       |
-      |    // break in lambda, without comma
+      |    // break in lambda, natural break
       |    fruit.forEach(
       |      someVeryLongParameterNameThatWillCauseABreak,
-      |      evenWithoutATrailingCommaOnTheParameterListSoLetsSeeIt
+      |      evenWithoutATrailingCommaOnTheParameterListSoLetsSeeIt,
       |    ) {
       |      eat(it)
       |    }
       |
-      |    // break in the lambda, with comma
+      |    // break in the lambda, forced break
       |    fruit.forEach(
-      |      fromTheVine = true,
+      |      fromTheVine = true //
       |    ) {
       |      eat(it)
       |    }
       |
       |    // don't break in the inner lambda, as nesting doesn't respect outer levels
       |    fruit.forEach(
-      |      fromTheVine = true,
+      |      fromTheVine = true //
       |    ) {
       |      fruit.forEach { eat(it) }
       |    }
@@ -458,21 +454,21 @@ class GoogleStyleFormatterKtTest {
       |    // don't break in the lambda, as breaks don't propagate
       |    fruit
       |      .onlyBananas(
-      |        fromTheVine = true,
+      |        fromTheVine = true //
       |      )
       |      .forEach { eat(it) }
       |
       |    // don't break in the inner lambda, as breaks don't propagate to parameters
       |    fruit.onlyBananas(
       |      fromTheVine = true,
-      |      processThem = { eat(it) },
+      |      processThem = { eat(it) }, //
       |    ) {
       |      eat(it)
       |    }
       |
       |    // don't break in the inner lambda, as breaks don't propagate to the body
       |    fruit.onlyBananas(
-      |      fromTheVine = true,
+      |      fromTheVine = true //
       |    ) {
       |      val anon = { eat(it) }
       |    }
@@ -480,7 +476,6 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
@@ -493,12 +488,12 @@ class GoogleStyleFormatterKtTest {
       |  foo(
       |    123456789012345678901234567890,
       |    123456789012345678901234567890,
-      |    123456789012345678901234567890
+      |    123456789012345678901234567890,
       |  )
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT)
+      )
 
   @Test
   fun `line breaks inside when expressions and conditions`() =
@@ -520,7 +515,7 @@ class GoogleStyleFormatterKtTest {
       |              blablabl,
       |              blablabl,
       |              blablabl,
-      |              blabla
+      |              blabla,
       |            )
       |            .show()
       |      }
@@ -529,7 +524,6 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
       )
 
   @Test
@@ -545,7 +539,6 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
       )
 
   @Test
@@ -558,14 +551,13 @@ class GoogleStyleFormatterKtTest {
       |    lambdaArgument = {
       |      step1()
       |      step2()
-      |    }
+      |    },
       |  ) {
       |    it.doIt()
       |  }
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
       )
 
   @Test
@@ -581,7 +573,6 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
       )
 
   @Test
@@ -594,18 +585,80 @@ class GoogleStyleFormatterKtTest {
       |  foo(
       |    123456789012345678901234567890,
       |    b = 23456789012345678901234567890,
-      |    c = 3456789012345678901234567890
+      |    c = 3456789012345678901234567890,
       |  )
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT)
+      )
+
+  @Test
+  fun `long call chains in named parameters`() =
+      assertFormatted(
+          """
+            |/////////////////////////////////////////////////
+            |declareOne(
+            |  kind = DeclarationKind.FIELD,
+            |  modifiers = property.modifierList,
+            |  valOrVarKeyword =
+            |    property.valOrVarKeyword.text,
+            |  multiline =
+            |    property.one.two.three.four.five.six.seven
+            |      .eight
+            |      .nine
+            |      .ten,
+            |  typeParametersBlaBla =
+            |    property.typeParameterList,
+            |  receiver = property.receiverTypeReference,
+            |  name = property.nameIdentifier?.text,
+            |  type = property.typeReference,
+            |  typeConstraintList =
+            |    property.typeConstraintList,
+            |  delegate = property.delegate,
+            |  initializer = property.initializer,
+            |)
+            |"""
+              .trimMargin(),
+          deduceMaxWidth = true)
+
+  @Test
+  fun `'if' expression functions wraps to next line`() =
+      assertFormatted(
+          """
+            |//////////////////////////////////////////////////////////////////
+            |private fun parseRequest(
+            |  isWrapped: Boolean,
+            |  json: Json,
+            |  inputText: String,
+            |) =
+            |  if (isWrapped) {
+            |      runCatching { json.decodeFromString<Request>(inputText) }
+            |        .mapCatching {
+            |          requireNotNull(it.body) {
+            |            "Request#body must not be null or empty"
+            |          }
+            |          it.body!!
+            |        }
+            |        .fold({ Success(it) }, { Failure(it) })
+            |    } else {
+            |      runCatching {
+            |          json.decodeFromString<AnotherRequest>(inputText)
+            |        }
+            |        .fold({ Success(it) }, { Failure(it) })
+            |    }
+            |    .mapFailure {
+            |      // slightly long text here that is an example of a comment
+            |      Response(false, 400, listOfNotNull(it.message))
+            |    }
+            |"""
+              .trimMargin(),
+          deduceMaxWidth = true)
 
   @Test
   fun `Arguments are blocks`() =
       assertFormatted(
           """
-      |--------------------------------------------------
+      |//////////////////////////////////////////////////
       |override fun visitProperty(property: KtProperty) {
       |  builder.sync(property)
       |  builder.block(ZERO) {
@@ -622,20 +675,19 @@ class GoogleStyleFormatterKtTest {
       |      typeConstraintList =
       |        property.typeConstraintList,
       |      delegate = property.delegate,
-      |      initializer = property.initializer
+      |      initializer = property.initializer,
       |    )
       |  }
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `keep last expression in qualified indented`() =
       assertFormatted(
           """
-      |-----------------------
+      |///////////////////////
       |fun f() {
       |  Stuff()
       |    .doIt(
@@ -649,7 +701,6 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
@@ -668,7 +719,7 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT)
+      )
 
   @Test
   fun `named arguments indent their value expression`() =
@@ -681,17 +732,17 @@ class GoogleStyleFormatterKtTest {
       |        // Printing
       |        print()
       |      },
-      |    duration = duration
+      |    duration = duration,
       |  )
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT)
+      )
 
   @Test
   fun `breaking long binary operations`() =
       assertFormatted(
           """
-      |--------------------
+      |////////////////////
       |fun foo() {
       |  val finalWidth =
       |    value1 +
@@ -703,20 +754,19 @@ class GoogleStyleFormatterKtTest {
       |      (1 + 2) +
       |      function(
       |        value7,
-      |        value8
+      |        value8,
       |      ) +
       |      value9
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `handle casting with breaks`() =
       assertFormatted(
           """
-      |-------------------
+      |///////////////////
       |fun castIt(
       |  something: Any
       |) {
@@ -742,14 +792,16 @@ class GoogleStyleFormatterKtTest {
       |    something
       |      is
       |      PairList<
-      |        String, Int
+      |        String,
+      |        Int,
       |      >
       |  )
       |  doIt(
       |    something
       |      as
       |      PairList<
-      |        String, Int
+      |        String,
+      |        Int,
       |      >
       |  )
       |  println(
@@ -759,39 +811,37 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `line breaks in function arguments`() =
       assertFormatted(
           """
-      |--------------------------------------------------
+      |//////////////////////////////////////////////////
       |fun f() {
       |  computeBreaks(
       |    javaOutput.commentsHelper,
       |    maxWidth,
-      |    Doc.State(+0, 0)
+      |    Doc.State(+0, 0),
       |  )
       |  computeBreaks(
       |    output.commentsHelper,
       |    maxWidth,
-      |    State(0)
+      |    State(0),
       |  )
       |  doc.computeBreaks(
       |    javaOutput.commentsHelper,
       |    maxWidth,
-      |    Doc.State(+0, 0)
+      |    Doc.State(+0, 0),
       |  )
       |  doc.computeBreaks(
       |    output.commentsHelper,
       |    maxWidth,
-      |    State(0)
+      |    State(0),
       |  )
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   // TODO: there's a bug here - the last case shouldn't break after 'foo'.
@@ -799,62 +849,60 @@ class GoogleStyleFormatterKtTest {
   fun `different indentation in chained calls`() =
       assertFormatted(
           """
-      |----------------------
+      |//////////////////////
       |fun f() {
       |  fooDdoIt(
       |    foo1,
       |    foo2,
-      |    foo3
+      |    foo3,
       |  )
       |  foo.doIt(
       |    foo1,
       |    foo2,
-      |    foo3
+      |    foo3,
       |  )
       |  foo
       |    .doIt(
       |      foo1,
       |      foo2,
-      |      foo3
+      |      foo3,
       |    )
       |    .doThat()
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `a secondary constructor with many arguments passed to delegate`() =
       assertFormatted(
           """
-      |--------------------------------------------------
+      |//////////////////////////////////////////////////
       |data class Foo {
       |  constructor(
       |    val number: Int,
       |    val name: String,
       |    val age: Int,
       |    val title: String,
-      |    val offspring: List<Foo>
+      |    val offspring: List<Foo>,
       |  ) : this(
       |    number,
       |    name,
       |    age,
       |    title,
       |    offspring,
-      |    offspring
+      |    offspring,
       |  )
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `a secondary constructor with no arguments passed to delegate`() =
       assertFormatted(
           """
-      |--------------------------------------------------
+      |//////////////////////////////////////////////////
       |data class Foo {
       |  constructor() :
       |    this(
@@ -864,65 +912,292 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
-  fun `handle trailing commas (function calls)`() =
+  fun `handle forced breaks in function calls`() =
       assertFormatted(
           """
-      |------------------------
+      |////////////////////////
       |fun main() {
       |  foo(
-      |    3,
+      |    3 //
       |  )
       |
       |  foo<Int>(
-      |    3,
+      |    3 //
       |  )
       |
       |  foo<
-      |    Int,
+      |    Int //
       |  >(
-      |    3,
+      |    3 //
       |  )
       |
       |  foo<Int>(
       |    "asdf",
-      |    "asdf"
+      |    "asdf", //
+      |  )
+      |
+      |  foo<
+      |    Int //
+      |  >(
+      |    "asd",
+      |    "asd", //
       |  )
       |
       |  foo<
       |    Int,
+      |    Boolean, //
       |  >(
-      |    "asd",
-      |    "asd",
-      |  )
-      |
-      |  foo<
-      |    Int,
-      |    Boolean,
-      |  >(
-      |    3,
+      |    3 //
       |  )
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
+
+  @Test
+  fun `tailing commas are removed when redundant`() {
+    val code =
+        """
+      |fun main() {
+      |  fun <A, B,> foo() {}
+      |
+      |  fun foo(a: Int, b: Int = 0,) {}
+      |
+      |  foo<Int, Int,>()
+      |
+      |  foo(0, 0,)
+      |
+      |  @Anno(arr = [0, 0,]) //
+      |  fun foo() {}
+      |}
+      |"""
+            .trimMargin()
+    val expected =
+        """
+      |fun main() {
+      |  fun <A, B> foo() {}
+      |
+      |  fun foo(a: Int, b: Int = 0) {}
+      |
+      |  foo<Int, Int>()
+      |
+      |  foo(0, 0)
+      |
+      |  @Anno(arr = [0, 0]) //
+      |  fun foo() {}
+      |}
+      |"""
+            .trimMargin()
+    assertThatFormatting(code).isEqualTo(expected)
+  }
+
+  @Test
+  fun `tailing commas are added when missing`() {
+    // Use trailing comments to force the breaks
+    val code =
+        """
+      |fun main() {
+      |  fun <
+      |    A,
+      |    B // Comma before comment
+      |  > foo() {}
+      |
+      |  fun foo(
+      |    a: Int,
+      |    b: Int = 0 // Comma before comment
+      |  ) {}
+      |
+      |  foo<
+      |    Int,
+      |    Int // Comma before comment
+      |  >()
+      |
+      |  foo(
+      |    0,
+      |    b = 0 // Comma before comment
+      |  )
+      |
+      |  foo(
+      |    0,
+      |    b = {
+      |      // Comma outside lambda
+      |    }
+      |  )
+      |
+      |  @Anno(
+      |    arr = [
+      |      0,
+      |      0 // Comma before comment
+      |    ]
+      |  )
+      |  fun foo() {}
+      |}
+      |"""
+            .trimMargin()
+    val expected =
+        """
+      |fun main() {
+      |  fun <
+      |    A,
+      |    B, // Comma before comment
+      |  > foo() {}
+      |
+      |  fun foo(
+      |    a: Int,
+      |    b: Int = 0, // Comma before comment
+      |  ) {}
+      |
+      |  foo<
+      |    Int,
+      |    Int, // Comma before comment
+      |  >()
+      |
+      |  foo(
+      |    0,
+      |    b = 0, // Comma before comment
+      |  )
+      |
+      |  foo(
+      |    0,
+      |    b = {
+      |      // Comma outside lambda
+      |    },
+      |  )
+      |
+      |  @Anno(
+      |    arr =
+      |      [
+      |        0,
+      |        0, // Comma before comment
+      |      ]
+      |  )
+      |  fun foo() {}
+      |}
+      |"""
+            .trimMargin()
+    assertThatFormatting(code).isEqualTo(expected)
+  }
+
+  @Test
+  fun `tailing commas that are always removed`() {
+    // Use trailing comments to force the breaks
+    val code =
+        """
+      |fun main() {
+      |  foo {
+      |    a, //
+      |    b, ->
+      |    a
+      |  }
+      |
+      |  when (a) {
+      |    is A, //
+      |    is B, -> return
+      |  }
+      |}
+      |"""
+            .trimMargin()
+    val expected =
+        """
+      |fun main() {
+      |  foo {
+      |    a, //
+      |    b ->
+      |    a
+      |  }
+      |
+      |  when (a) {
+      |    is A, //
+      |    is B -> return
+      |  }
+      |}
+      |"""
+            .trimMargin()
+    assertThatFormatting(code).isEqualTo(expected)
+  }
+
+  @Test
+  fun `tailing commas are not added to empty lists`() {
+    // Use trailing comments to force the breaks
+    assertFormatted(
+        """
+      |fun main() {
+      |  fun foo(
+      |    //
+      |  ) {}
+      |
+      |  foo(
+      |    //
+      |  )
+      |
+      |  foo {
+      |  //
+      |  ->
+      |    0
+      |  }
+      |
+      |  @Anno(
+      |    arr =
+      |      [
+      |        //
+      |      ]
+      |  )
+      |  fun foo() {}
+      |}
+      |"""
+            .trimMargin(),
+        deduceMaxWidth = false)
+  }
+
+  @Test
+  fun `tailing commas are not added to single-element lists`() {
+    assertFormatted(
+        """
+      |fun main() {
+      |  fun foo(
+      |    a: Int //
+      |  ) {}
+      |
+      |  foo(
+      |    0 //
+      |  )
+      |
+      |  foo {
+      |    a //
+      |     ->
+      |    0
+      |  }
+      |
+      |  @Anno(
+      |    arr =
+      |      [
+      |        0 //
+      |      ]
+      |  )
+      |  fun foo() {}
+      |}
+      |"""
+            .trimMargin(),
+        deduceMaxWidth = false)
+  }
 
   @Test
   fun `an assortment of tests for emitQualifiedExpression`() =
       assertFormatted(
           """
-      |--------------------------------------
+      |//////////////////////////////////////
       |fun f() {
-      |  // Regression test: https://github.com/facebookincubator/ktfmt/issues/56
+      |  // Regression test:
+      |  // https://github.com/facebook/ktfmt/issues/56
       |  kjsdfglkjdfgkjdfkgjhkerjghkdfj
       |    ?.methodName1()
       |
-      |  // a series of field accesses followed by a single call expression
-      |  // is kept together.
+      |  // a series of field accesses
+      |  // followed by a single call
+      |  // expression is kept together.
       |  abcdefghijkl.abcdefghijkl
       |    ?.methodName2()
       |
@@ -931,25 +1206,29 @@ class GoogleStyleFormatterKtTest {
       |    ?.methodName3
       |    ?.abcdefghijkl()
       |
-      |  // Multiple call expressions cause each part of the expression
+      |  // Multiple call expressions cause
+      |  // each part of the expression
       |  // to be placed on its own line.
       |  abcdefghijkl
       |    ?.abcdefghijkl
       |    ?.methodName4()
       |    ?.abcdefghijkl()
       |
-      |  // Don't break first call expression if it fits.
+      |  // Don't break first call
+      |  // expression if it fits.
       |  foIt(something.something.happens())
       |    .thenReturn(result)
       |
-      |  // Break after `longerThanFour(` because it's longer than 4 chars
+      |  // Break after `longerThanFour(`
+      |  // because it's longer than 4 chars
       |  longerThanFour(
       |      something.somethingBlaBla
       |        .happens()
       |    )
       |    .thenReturn(result)
       |
-      |  // Similarly to above, when part of qualified expression.
+      |  // Similarly to above, when part of
+      |  // qualified expression.
       |  foo
       |    .longerThanFour(
       |      something.somethingBlaBla
@@ -957,14 +1236,14 @@ class GoogleStyleFormatterKtTest {
       |    )
       |    .thenReturn(result)
       |
-      |  // Keep 'super' attached to the method name
+      |  // Keep 'super' attached to the
+      |  // method name
       |  super.abcdefghijkl
       |    .methodName4()
       |    .abcdefghijkl()
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
@@ -988,26 +1267,25 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT)
+      )
 
   @Test
   fun `chained calls that don't fit in one line`() =
       assertFormatted(
           """
-      |---------------------------
+      |///////////////////////////
       |fun f() {
       |  foo(
       |      println("a"),
-      |      println("b")
+      |      println("b"),
       |    )
       |    .bar(
       |      println("b"),
-      |      println("b")
+      |      println("b"),
       |    )
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
@@ -1032,7 +1310,7 @@ class GoogleStyleFormatterKtTest {
   fun `comma separated lists, no automatic trailing break after lambda params`() =
       assertFormatted(
           """
-      |----------------------------
+      |////////////////////////////
       |fun foo() {
       |  someExpr.let { x -> x }
       |  someExpr.let { x, y -> x }
@@ -1058,14 +1336,13 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `comma separated lists, no automatic trailing break after supertype list`() =
       assertFormatted(
           """
-      |----------------------------
+      |////////////////////////////
       |class Foo() :
       |  ThisList,
       |  WillBe,
@@ -1076,14 +1353,13 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `if expression with multiline condition`() =
       assertFormatted(
           """
-      |----------------------------
+      |////////////////////////////
       |fun foo() {
       |  if (
       |    expressions1 &&
@@ -1105,14 +1381,13 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `if expression with condition that exactly fits to line`() =
       assertFormatted(
           """
-      |-------------------------
+      |/////////////////////////
       |fun foo() {
       |  if (
       |    e1 && e2 && e3 = e4
@@ -1122,14 +1397,13 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `when() expression with multiline condition`() =
       assertFormatted(
           """
-      |-----------------------
+      |///////////////////////
       |fun foo() {
       |  when (
       |    expressions1 +
@@ -1153,14 +1427,13 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `when expression with condition that exactly fits to line`() =
       assertFormatted(
           """
-      |---------------------------
+      |///////////////////////////
       |fun foo() {
       |  when (
       |    e1 && e2 && e3 = e4
@@ -1171,14 +1444,13 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `while expression with multiline condition`() =
       assertFormatted(
           """
-      |----------------------------
+      |////////////////////////////
       |fun foo() {
       |  while (
       |    expressions1 &&
@@ -1200,14 +1472,13 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `while expression with condition that exactly fits to line`() =
       assertFormatted(
           """
-      |----------------------------
+      |////////////////////////////
       |fun foo() {
       |  while (
       |    e1 && e2 && e3 = e4
@@ -1217,14 +1488,13 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `handle destructuring declaration`() =
       assertFormatted(
           """
-      |-------------------------------------------
+      |///////////////////////////////////////////
       |fun f() {
       |  val (a, b: Int) = listOf(1, 2)
       |  val (asd, asd, asd, asd, asd, asd, asd) =
@@ -1235,38 +1505,36 @@ class GoogleStyleFormatterKtTest {
       |      foo,
       |      bar,
       |      zed,
-      |      boo
+      |      boo,
       |    )
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `trailing break argument list`() =
       assertFormatted(
           """
-      |-------------------
+      |///////////////////
       |fun method() {
       |  Foo.FooBar(
       |    longParameter
       |  )
       |  Foo.FooBar(
       |    param1,
-      |    param2
+      |    param2,
       |  )
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `trailing break chains`() =
       assertFormatted(
           """
-      |-------------
+      |/////////////
       |bar(
       |  FooOpClass
       |    .doOp(1)
@@ -1274,31 +1542,29 @@ class GoogleStyleFormatterKtTest {
       |)
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `wrapping for long function types`() =
       assertFormatted(
           """
-      |------------------------
+      |////////////////////////
       |var listener:
       |  (
       |    a: String,
       |    b: String,
       |    c: String,
-      |    d: String
+      |    d: String,
       |  ) -> Unit
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `function call following long multiline string`() =
       assertFormatted(
           """
-      |--------------------------------
+      |////////////////////////////////
       |fun f() {
       |  val str1 =
       |    $TQ
@@ -1314,20 +1580,39 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
+
+  @Test
+  fun `multiline string literals as function params`() =
+      assertFormatted(
+          """
+      |fun doIt(world: String) {
+      |  println(
+      |    ${TQ}Hello
+      |    world!${TQ}
+      |  )
+      |  println(
+      |    ${TQ}Hello
+      |    world!${TQ},
+      |    ${TQ}Goodbye
+      |    world!${TQ},
+      |  )
+      |}
+      |"""
+              .trimMargin(),
+      )
 
   @Test
   fun `array-literal in annotation`() =
       assertFormatted(
           """
-      |--------------------------------
+      |////////////////////////////////
       |@Anno(
       |  array =
       |    [
       |      someItem,
       |      andAnother,
-      |      noTrailingComma
+      |      noTrailingComma,
       |    ]
       |)
       |class Host
@@ -1350,7 +1635,7 @@ class GoogleStyleFormatterKtTest {
       |      // Comment
       |      andAnother,
       |      // Comment
-      |      withTrailingComment
+      |      withTrailingComment,
       |      // Comment
       |      // Comment
       |    ]
@@ -1358,14 +1643,13 @@ class GoogleStyleFormatterKtTest {
       |class Host
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `leading and trailing comments in block-like lists`() =
       assertFormatted(
           """
-      |--------------------------------
+      |////////////////////////////////
       |@Anno(
       |  array =
       |    [
@@ -1422,14 +1706,13 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
 
   @Test
   fun `comments in empty block-like lists`() =
       assertFormatted(
           """
-      |--------------------------------
+      |////////////////////////////////
       |@Anno(
       |  array =
       |    [
@@ -1460,11 +1743,134 @@ class GoogleStyleFormatterKtTest {
       |}
       |"""
               .trimMargin(),
-          formattingOptions = Formatter.GOOGLE_FORMAT,
           deduceMaxWidth = true)
+
+  @Test
+  fun `trailing commas on multline enum entries`() =
+      assertFormatted(
+          """
+      |enum class MultilineEntries {
+      |  A(
+      |    arg = 0, //
+      |    arg = 0,
+      |  ),
+      |  /* Comment */
+      |  B,
+      |  C {
+      |    fun foo() {}
+      |  },
+      |}
+      |"""
+              .trimMargin(),
+      )
+
+  @Test
+  fun `trailing commas in enums`() {
+    val code =
+        """
+        |enum class A {}
+        |
+        |enum class B {
+        |  Z // Comment
+        |}
+        |
+        |enum class C {
+        |  Z, // Comment
+        |}
+        |
+        |enum class D {
+        |  Z,
+        |  Y // Comment
+        |}
+        |
+        |enum class E {
+        |  Z,
+        |  Y, // Comment
+        |}
+        |
+        |enum class F {
+        |  Z,
+        |  Y; // Comment
+        |
+        |  val x = 0
+        |}
+        |
+        |enum class G {
+        |  Z,
+        |  Y,; // Comment
+        |
+        |  val x = 0
+        |}
+        |
+        |enum class H {
+        |  Z,
+        |  Y() {} // Comment
+        |}
+        |
+        |enum class I {
+        |  Z,
+        |  Y() {}, // Comment
+        |}
+        |"""
+            .trimMargin()
+    val expected =
+        """
+        |enum class A {}
+        |
+        |enum class B {
+        |  Z // Comment
+        |}
+        |
+        |enum class C {
+        |  Z // Comment
+        |}
+        |
+        |enum class D {
+        |  Z,
+        |  Y, // Comment
+        |}
+        |
+        |enum class E {
+        |  Z,
+        |  Y, // Comment
+        |}
+        |
+        |enum class F {
+        |  Z,
+        |  Y; // Comment
+        |
+        |  val x = 0
+        |}
+        |
+        |enum class G {
+        |  Z,
+        |  Y; // Comment
+        |
+        |  val x = 0
+        |}
+        |
+        |enum class H {
+        |  Z,
+        |  Y() {}, // Comment
+        |}
+        |
+        |enum class I {
+        |  Z,
+        |  Y() {}, // Comment
+        |}
+        |"""
+            .trimMargin()
+    assertThatFormatting(code).isEqualTo(expected)
+  }
 
   companion object {
     /** Triple quotes, useful to use within triple-quoted strings. */
     private const val TQ = "\"\"\""
+
+    @JvmStatic
+    @BeforeClass
+    fun setUp(): Unit {
+      defaultTestFormattingOptions = Formatter.GOOGLE_FORMAT
+    }
   }
 }

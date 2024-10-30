@@ -14,49 +14,80 @@
  * limitations under the License.
  */
 
+import com.ncorti.ktfmt.gradle.tasks.KtfmtCheckTask
+import com.ncorti.ktfmt.gradle.tasks.KtfmtFormatTask
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdeaCommunity
+
 plugins {
-  id("org.jetbrains.intellij") version "0.7.2"
   java
-  id("com.diffplug.spotless") version "5.10.2"
+  alias(libs.plugins.kotlin)
+  alias(libs.plugins.intelliJPlatform)
+  alias(libs.plugins.ktfmt)
 }
 
 val ktfmtVersion = rootProject.file("../version.txt").readText().trim()
-val pluginVersion = "1.1"
+val pluginVersion = "1.2"
 
 group = "com.facebook"
 
 version = "$pluginVersion.$ktfmtVersion"
 
+kotlin { jvmToolchain(17) }
+
 repositories {
   mavenCentral()
+  intellijPlatform { defaultRepositories() }
   mavenLocal()
 }
 
-java {
-  sourceCompatibility = JavaVersion.VERSION_11
-  targetCompatibility = JavaVersion.VERSION_11
-}
-
 dependencies {
-  implementation("com.facebook", "ktfmt", ktfmtVersion)
-  implementation("com.google.googlejavaformat", "google-java-format", "1.8")
+  intellijPlatform {
+    create(IntellijIdeaCommunity, "2022.3")
+    instrumentationTools()
+    pluginVerifier()
+    zipSigner()
+  }
+
+  implementation("com.facebook:ktfmt:$ktfmtVersion")
 }
 
-// See https://github.com/JetBrains/gradle-intellij-plugin/
-intellij {
-  // Version with which to build (and run; unless alternativeIdePath is specified)
-  version = "2020.3"
-  // To run on a different IDE, uncomment and specify a path.
-  // alternativeIdePath = "/Applications/Android Studio.app"
+intellijPlatform {
+  pluginConfiguration.ideaVersion {
+    sinceBuild = "223.7571.182" // 2022.3
+    untilBuild = provider { null }
+  }
+
+  publishing { token = System.getenv("JETBRAINS_MARKETPLACE_TOKEN") }
+
+  pluginVerification { ides { recommended() } }
 }
+
+val runIntellij242 by
+    intellijPlatformTesting.runIde.registering {
+      type = IntellijIdeaCommunity
+      version = "2024.2"
+    }
 
 tasks {
-  patchPluginXml {
-    sinceBuild("201")
-    untilBuild("")
-  }
-  publishPlugin { token(System.getenv("JETBRAINS_MARKETPLACE_TOKEN")) }
-  runPluginVerifier { ideVersions(listOf("211.6432.7")) }
+  // Set up ktfmt formatting tasks
+  val ktfmtFormatKts by
+      creating(KtfmtFormatTask::class) {
+        source = fileTree(rootDir)
+        include("**/*.kts")
+      }
+  val ktfmtCheckKts by
+      creating(KtfmtCheckTask::class) {
+        source = fileTree(rootDir)
+        include("**/*.kts")
+        mustRunAfter("compileKotlin")
+        mustRunAfter("prepareSandbox")
+        mustRunAfter("prepareTestSandbox")
+        mustRunAfter("instrumentCode")
+        mustRunAfter("instrumentTestCode")
+        mustRunAfter("buildSearchableOptions")
+        mustRunAfter("prepareJarSearchableOptions")
+      }
+  val ktfmtFormat by getting { dependsOn(ktfmtFormatKts) }
+  val ktfmtCheck by getting { dependsOn(ktfmtCheckKts) }
+  val check by getting { dependsOn(ktfmtCheck) }
 }
-
-spotless { java { googleJavaFormat() } }

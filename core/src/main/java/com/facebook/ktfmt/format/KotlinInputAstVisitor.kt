@@ -23,13 +23,13 @@ import com.google.googlejavaformat.FormattingError
 import com.google.googlejavaformat.Indent
 import com.google.googlejavaformat.Indent.Const.ZERO
 import com.google.googlejavaformat.OpsBuilder
-import com.google.googlejavaformat.Output
 import com.google.googlejavaformat.Output.BreakTag
 import java.util.ArrayDeque
 import java.util.Optional
 import org.jetbrains.kotlin.com.intellij.psi.PsiComment
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.com.intellij.psi.PsiWhiteSpace
+import org.jetbrains.kotlin.com.intellij.psi.stubs.PsiFileStubImpl
 import org.jetbrains.kotlin.lexer.KtModifierKeywordToken
 import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.psi.KtAnnotatedExpression
@@ -44,6 +44,7 @@ import org.jetbrains.kotlin.psi.KtBreakExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtCallableReferenceExpression
 import org.jetbrains.kotlin.psi.KtCatchClause
+import org.jetbrains.kotlin.psi.KtClass
 import org.jetbrains.kotlin.psi.KtClassBody
 import org.jetbrains.kotlin.psi.KtClassInitializer
 import org.jetbrains.kotlin.psi.KtClassLiteralExpression
@@ -123,7 +124,6 @@ import org.jetbrains.kotlin.psi.KtWhenConditionWithExpression
 import org.jetbrains.kotlin.psi.KtWhenExpression
 import org.jetbrains.kotlin.psi.KtWhileExpression
 import org.jetbrains.kotlin.psi.psiUtil.children
-import org.jetbrains.kotlin.psi.psiUtil.getNextSiblingIgnoringWhitespace
 import org.jetbrains.kotlin.psi.psiUtil.getPrevSiblingIgnoringWhitespace
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import org.jetbrains.kotlin.psi.psiUtil.startsWithComment
@@ -135,8 +135,6 @@ class KotlinInputAstVisitor(
     private val options: FormattingOptions,
     private val builder: OpsBuilder
 ) : KtTreeVisitorVoid() {
-
-  private val isGoogleStyle = options.style == FormattingOptions.Style.GOOGLE
 
   /** Standard indentation for a block */
   private val blockIndent: Indent.Const = Indent.Const.make(options.blockIndent, 1)
@@ -258,6 +256,7 @@ class KotlinInputAstVisitor(
     visitEachCommaSeparated(
         typeArgumentList.arguments,
         typeArgumentList.trailingComma != null,
+        wrapInBlock = !options.manageTrailingCommas,
         prefix = "<",
         postfix = ">",
     )
@@ -397,8 +396,8 @@ class KotlinInputAstVisitor(
     }
   }
 
-  private fun genSym(): Output.BreakTag {
-    return Output.BreakTag()
+  private fun genSym(): BreakTag {
+    return BreakTag()
   }
 
   private fun emitBracedBlock(
@@ -479,10 +478,9 @@ class KotlinInputAstVisitor(
         }
       }
       receiver is KtStringTemplateExpression -> {
-        val isMultiline = receiver.text.contains('\n')
         builder.block(expressionBreakIndent) {
           visit(receiver)
-          builder.breakOp(if (isMultiline) Doc.FillMode.FORCED else Doc.FillMode.UNIFIED, "", ZERO)
+          builder.breakOp(Doc.FillMode.UNIFIED, "", ZERO)
           builder.token(expression.operationSign.value)
           visit(expression.selectorExpression)
         }
@@ -726,34 +724,6 @@ class KotlinInputAstVisitor(
         index == parts.indices.last
   }
 
-  /** Returns true if the expression represents an invocation that is also a lambda */
-  private fun KtExpression.isLambda(): Boolean {
-    return extractCallExpression(this)?.lambdaArguments?.isNotEmpty() ?: false
-  }
-
-  /** Does this list have parens with only whitespace between them? */
-  private fun KtParameterList.hasEmptyParens(): Boolean {
-    val left = this.leftParenthesis ?: return false
-    val right = this.rightParenthesis ?: return false
-    return left.getNextSiblingIgnoringWhitespace() == right
-  }
-
-  /** Does this list have parens with only whitespace between them? */
-  private fun KtValueArgumentList.hasEmptyParens(): Boolean {
-    val left = this.leftParenthesis ?: return false
-    val right = this.rightParenthesis ?: return false
-    return left.getNextSiblingIgnoringWhitespace() == right
-  }
-
-  /**
-   * emitQualifiedExpression formats call expressions that are either part of a qualified
-   * expression, or standing alone. This method makes it easier to handle both cases uniformly.
-   */
-  private fun extractCallExpression(expression: KtExpression): KtCallExpression? {
-    val ktExpression = (expression as? KtQualifiedExpression)?.selectorExpression ?: expression
-    return ktExpression as? KtCallExpression
-  }
-
   override fun visitCallExpression(callExpression: KtCallExpression) {
     builder.sync(callExpression)
     with(callExpression) {
@@ -799,13 +769,17 @@ class KotlinInputAstVisitor(
           }
         }
       }
-      if (lambdaArguments.isNotEmpty()) {
-        builder.space()
-        visitArgumentInternal(
-            lambdaArguments.single(),
-            wrapInBlock = false,
-            brokeBeforeBrace = brokeBeforeBrace,
-        )
+      when (lambdaArguments.size) {
+        0 -> {}
+        1 -> {
+          builder.space()
+          visitArgumentInternal(
+              lambdaArguments.single(),
+              wrapInBlock = false,
+              brokeBeforeBrace = brokeBeforeBrace,
+          )
+        }
+        else -> throw ParseError("Maximum one trailing lambda is allowed", lambdaArguments[1])
       }
     }
   }
@@ -842,8 +816,8 @@ class KotlinInputAstVisitor(
       leadingBreak = !hasEmptyParens && hasTrailingComma
       breakAfterPrefix = false
     } else {
-      wrapInBlock = !isGoogleStyle
-      breakBeforePostfix = isGoogleStyle && !hasEmptyParens
+      wrapInBlock = !options.manageTrailingCommas
+      breakBeforePostfix = options.manageTrailingCommas && !hasEmptyParens
       leadingBreak = !hasEmptyParens
       breakAfterPrefix = !hasEmptyParens
     }
@@ -888,8 +862,10 @@ class KotlinInputAstVisitor(
 
     val valueParams = lambdaExpression.valueParameters
     val hasParams = valueParams.isNotEmpty()
-    val statements = (lambdaExpression.bodyExpression ?: fail()).children
-    val hasStatements = statements.isNotEmpty()
+    val bodyExpression = lambdaExpression.bodyExpression ?: fail()
+    val expressionStatements = bodyExpression.children
+    val hasStatements = expressionStatements.isNotEmpty()
+    val hasComments = bodyExpression.children().any { it is PsiComment }
     val hasArrow = lambdaExpression.functionLiteral.arrow != null
 
     fun ifBrokeBeforeBrace(onTrue: Indent, onFalse: Indent): Indent {
@@ -927,26 +903,30 @@ class KotlinInputAstVisitor(
         }
         builder.token("->")
       }
-      builder.breakOp(Doc.FillMode.UNIFIED, "", bracePlusZeroIndent)
+    }
+
+    if (hasParams || hasArrow || hasStatements || hasComments) {
+      builder.breakOp(Doc.FillMode.UNIFIED, " ", bracePlusZeroIndent)
     }
 
     if (hasStatements) {
-      builder.breakOp(Doc.FillMode.UNIFIED, " ", bracePlusBlockIndent)
+      builder.breakOp(Doc.FillMode.UNIFIED, "", bracePlusBlockIndent)
       builder.block(bracePlusBlockIndent) {
         builder.blankLineWanted(OpsBuilder.BlankLineWanted.NO)
-        if (statements.size == 1 &&
-            statements.first() !is KtReturnExpression &&
-            lambdaExpression.bodyExpression?.startsWithComment() != true) {
-          visitStatement(statements[0])
+        if (expressionStatements.size == 1 &&
+            expressionStatements.first() !is KtReturnExpression &&
+            !bodyExpression.startsWithComment()) {
+          visitStatement(expressionStatements[0])
         } else {
-          visitStatements(statements)
+          visitStatements(expressionStatements)
         }
+        builder.breakOp(Doc.FillMode.UNIFIED, " ", bracePlusZeroIndent)
       }
     }
 
     if (hasParams || hasArrow || hasStatements) {
       // If we had to break in the body, ensure there is a break before the closing brace
-      builder.breakOp(Doc.FillMode.UNIFIED, " ", bracePlusZeroIndent)
+      builder.breakOp(Doc.FillMode.UNIFIED, "", bracePlusZeroIndent)
     }
     builder.block(bracePlusZeroIndent) {
       builder.fenceComments()
@@ -1072,7 +1052,7 @@ class KotlinInputAstVisitor(
       prefix: String? = null,
       postfix: String? = null,
       breakAfterPrefix: Boolean = true,
-      breakBeforePostfix: Boolean = isGoogleStyle,
+      breakBeforePostfix: Boolean = options.manageTrailingCommas,
   ): BreakTag? {
     val breakAfterLastElement = hasTrailingComma || (postfix != null && breakBeforePostfix)
     val nameTag = if (breakAfterLastElement) null else genSym()
@@ -1229,7 +1209,8 @@ class KotlinInputAstVisitor(
       val isFirst = leftExpression === leftMostExpression
 
       when (leftExpression.operationToken) {
-        KtTokens.RANGE -> {
+        KtTokens.RANGE,
+        KtTokens.RANGE_UNTIL -> {
           if (isFirst) {
             builder.open(expressionBreakIndent)
           }
@@ -1435,15 +1416,17 @@ class KotlinInputAstVisitor(
     return 0
   }
 
-  // Bug in Kotlin 1.9.10: KtProperyAccessor is the direct parent of the left and right paren
+  // Bug in Kotlin 1.9.10: KtPropertyAccessor is the direct parent of the left and right paren
   // elements. Also parameterList is always null for getters. As a workaround, we create our own
   // fake KtParameterList.
+  // TODO: won't need this after https://youtrack.jetbrains.com/issue/KT-70922
   private fun getParameterListWithBugFixes(accessor: KtPropertyAccessor): KtParameterList? {
     if (accessor.bodyExpression == null && accessor.bodyBlockExpression == null) return null
 
+    val stub = accessor.stub ?: PsiFileStubImpl(accessor.containingFile)
+
     return object :
-        KtParameterList(
-            KotlinPlaceHolderStubImpl(accessor.stub, KtStubElementTypes.VALUE_PARAMETER_LIST)) {
+        KtParameterList(KotlinPlaceHolderStubImpl(stub, KtStubElementTypes.VALUE_PARAMETER_LIST)) {
       override fun getParameters(): List<KtParameter> {
         return accessor.valueParameters
       }
@@ -1785,6 +1768,7 @@ class KotlinInputAstVisitor(
         (baseExpression is KtBinaryExpression || baseExpression is KtBinaryExpressionWithTypeRHS) &&
             expression.parent is KtBlockExpression -> builder.forcedBreak()
         baseExpression is KtLambdaExpression -> builder.space()
+        baseExpression is KtReturnExpression -> builder.forcedBreak()
         else -> builder.breakOp(Doc.FillMode.UNIFIED, " ", ZERO)
       }
 
@@ -1900,8 +1884,12 @@ class KotlinInputAstVisitor(
       builder.space()
       builder.token("{", Doc.Token.RealOrImaginary.REAL, blockIndent, Optional.of(blockIndent))
 
-      expression.entries.forEach { whenEntry ->
+      expression.entries.forEachIndexed { index, whenEntry ->
         builder.block(blockIndent) {
+          if (index != 0) {
+            // preserve new line if there's one
+            builder.blankLineWanted(OpsBuilder.BlankLineWanted.PRESERVE)
+          }
           builder.forcedBreak()
           if (whenEntry.isElse) {
             builder.token("else")
@@ -1940,12 +1928,13 @@ class KotlinInputAstVisitor(
   override fun visitClassBody(body: KtClassBody) {
     builder.sync(body)
     emitBracedBlock(body) { children ->
-      val (enumEntries, nonEnumEntryMembers) = children.partition { it is KtEnumEntry }
+      val enumEntryList = EnumEntryList.extractChildList(body)
+      val members = children.filter { it !is KtEnumEntry }
 
-      if (enumEntries.isNotEmpty()) {
+      if (enumEntryList != null) {
         builder.block(ZERO) {
           builder.breakOp(Doc.FillMode.UNIFIED, "", ZERO)
-          for (value in enumEntries) {
+          for (value in enumEntryList.enumEntries) {
             visit(value)
             if (builder.peekToken() == Optional.of(",")) {
               builder.token(",")
@@ -1955,14 +1944,20 @@ class KotlinInputAstVisitor(
         }
         builder.guessToken(";")
 
-        if (nonEnumEntryMembers.isNotEmpty()) {
+        if (members.isNotEmpty()) {
           builder.forcedBreak()
           builder.blankLineWanted(OpsBuilder.BlankLineWanted.YES)
+        }
+      } else {
+        val parent = body.parent
+        if (parent is KtClass && parent.isEnum() && children.isNotEmpty()) {
+          builder.token(";")
+          builder.forcedBreak()
         }
       }
 
       var prev: PsiElement? = null
-      for (curr in nonEnumEntryMembers) {
+      for (curr in members) {
         val blankLineBetweenMembers =
             when {
               prev == null -> OpsBuilder.BlankLineWanted.PRESERVE
@@ -2145,7 +2140,7 @@ class KotlinInputAstVisitor(
           hasTrailingComma = list.trailingComma != null,
           prefix = "<",
           postfix = ">",
-          wrapInBlock = !isGoogleStyle,
+          wrapInBlock = !options.manageTrailingCommas,
       )
     }
   }
@@ -2301,6 +2296,9 @@ class KotlinInputAstVisitor(
 
   override fun visitFunctionType(type: KtFunctionType) {
     builder.sync(type)
+
+    type.contextReceiverList?.let { visitContextReceiverList(it) }
+
     val receiver = type.receiver
     if (receiver != null) {
       visit(receiver)
@@ -2374,7 +2372,7 @@ class KotlinInputAstVisitor(
           expression.trailingComma != null,
           prefix = "[",
           postfix = "]",
-          wrapInBlock = true)
+          wrapInBlock = !options.manageTrailingCommas)
     }
   }
 
@@ -2429,9 +2427,9 @@ class KotlinInputAstVisitor(
       visit(enumEntry.modifierList)
       builder.token(enumEntry.nameIdentifier?.text ?: fail())
       enumEntry.initializerList?.initializers?.forEach { visit(it) }
-      enumEntry.body?.let {
+      enumEntry.body?.let { enumBody ->
         builder.space()
-        visit(it)
+        visit(enumBody)
       }
     }
   }
@@ -2584,7 +2582,7 @@ class KotlinInputAstVisitor(
     sync(psiElement.startOffset)
   }
 
-  /** Prevent susequent comments from being moved ahead of this point, into parent [Level]s. */
+  /** Prevent subsequent comments from being moved ahead of this point, into parent [Level]s. */
   private fun OpsBuilder.fenceComments() {
     addAll(FenceCommentsOp.AS_LIST)
   }
@@ -2615,7 +2613,7 @@ class KotlinInputAstVisitor(
       builder.token(keyword)
       builder.space()
       builder.token("(")
-      if (isGoogleStyle) {
+      if (options.manageTrailingCommas) {
         builder.block(expressionBreakIndent) {
           builder.breakOp(Doc.FillMode.UNIFIED, "", ZERO)
           visit(condition)

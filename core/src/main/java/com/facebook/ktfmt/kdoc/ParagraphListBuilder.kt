@@ -1,4 +1,20 @@
 /*
+ * Portions Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
  * Copyright (c) Tor Norbye.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -236,7 +252,7 @@ class ParagraphListBuilder(
           // Make sure it's not just deeply indented inside a different block
           (paragraph.prev == null ||
               lineWithIndentation.length - lineWithoutIndentation.length >=
-                  paragraph.prev!!.originalIndent + 4)) {
+                  checkNotNull(paragraph.prev).originalIndent + 4)) {
         i = addPreformatted(i - 1, includeEnd = false, expectClose = false) { !it.startsWith(" ") }
       } else if (lineWithoutIndentation.startsWith("-") &&
           lineWithoutIndentation.containsOnly('-', '|', ' ')) {
@@ -361,7 +377,7 @@ class ParagraphListBuilder(
                 })
         newParagraph(i)
       } else if (lineWithoutIndentation.isListItem() ||
-          lineWithoutIndentation.isKDocTag() && task.type == CommentType.KDOC ||
+          (lineWithoutIndentation.isKDocTag() && task.type == CommentType.KDOC) ||
           lineWithoutIndentation.isTodo()) {
         i--
         newParagraph(i).hanging = true
@@ -388,10 +404,10 @@ class ParagraphListBuilder(
                         w.isLine() ||
                         w.isHeader() ||
                         // Not indented by at least two spaces following a blank line?
-                        s.length > 2 &&
+                        (s.length > 2 &&
                             (!s[0].isWhitespace() || !s[1].isWhitespace()) &&
                             j < lines.size - 1 &&
-                            lineContent(lines[j - 1]).isBlank()
+                            lineContent(lines[j - 1]).isBlank())
                   }
                 },
                 shouldBreak = { w, _ -> w.isBlank() },
@@ -455,7 +471,7 @@ class ParagraphListBuilder(
           newParagraph(i - 1).block = true
           if (lineWithoutIndentation.equals("<p>", true) ||
               lineWithoutIndentation.equals("<p/>", true) ||
-              options.convertMarkup && lineWithoutIndentation.equals("</p>", true)) {
+              (options.convertMarkup && lineWithoutIndentation.equals("</p>", true))) {
             if (options.convertMarkup) {
               // Replace <p> with a blank line
               paragraph.separate = true
@@ -565,24 +581,43 @@ class ParagraphListBuilder(
     return false
   }
 
-  private fun docTagRank(tag: String): Int {
+  private fun docTagRank(tag: String, isPriority: Boolean): Int {
     // Canonical kdoc order -- https://kotlinlang.org/docs/kotlin-doc.html#block-tags
     // Full list in Dokka's sources: plugins/base/src/main/kotlin/parsers/Parser.kt
     return when {
+      isPriority -> -1
       tag.startsWith("@param") -> 0
+      tag.startsWith("@property") -> 0
+      // @param and @property must be sorted by parameter order
+      // a @property is dedicated syntax for a main constructor @param that also sets a class
+      // property
       tag.startsWith("@return") -> 1
       tag.startsWith("@constructor") -> 2
       tag.startsWith("@receiver") -> 3
-      tag.startsWith("@property") -> 4
-      tag.startsWith("@throws") -> 5
-      tag.startsWith("@exception") -> 6
-      tag.startsWith("@sample") -> 7
-      tag.startsWith("@see") -> 8
-      tag.startsWith("@author") -> 9
-      tag.startsWith("@since") -> 10
-      tag.startsWith("@suppress") -> 11
-      tag.startsWith("@deprecated") -> 12
+      tag.startsWith("@throws") -> 4
+      tag.startsWith("@exception") -> 5
+      tag.startsWith("@sample") -> 6
+      tag.startsWith("@see") -> 7
+      tag.startsWith("@author") -> 8
+      tag.startsWith("@since") -> 9
+      tag.startsWith("@suppress") -> 10
+      tag.startsWith("@deprecated") -> 11
       else -> 100 // custom tags
+    }
+  }
+
+  /**
+   * Tags that are "priority" are placed before other tags, with their order unchanged.
+   *
+   * Note that if a priority tag comes after a regular tag (before formatting), it doesn't get
+   * treated as priority.
+   *
+   * See: https://github.com/facebook/ktfmt/issues/406
+   */
+  private fun docTagIsPriority(tag: String): Boolean {
+    return when {
+      tag.startsWith("@sample") -> true
+      else -> false
     }
   }
 
@@ -605,13 +640,16 @@ class ParagraphListBuilder(
   private fun sortDocTags() {
     if (options.orderDocTags && paragraphs.any { it.doc }) {
       val order = paragraphs.mapIndexed { index, paragraph -> paragraph to index }.toMap()
+      val firstNonPriorityDocTag = paragraphs.indexOfFirst { it.doc && !docTagIsPriority(it.text) }
       val comparator =
           object : Comparator<List<Paragraph>> {
             override fun compare(l1: List<Paragraph>, l2: List<Paragraph>): Int {
               val p1 = l1.first()
               val p2 = l2.first()
-              val o1 = order[p1]!!
-              val o2 = order[p2]!!
+              val o1 = checkNotNull(order[p1])
+              val o2 = checkNotNull(order[p2])
+              val isPriority1 = p1.doc && docTagIsPriority(p1.text) && o1 < firstNonPriorityDocTag
+              val isPriority2 = p2.doc && docTagIsPriority(p2.text) && o2 < firstNonPriorityDocTag
 
               // Sort TODOs to the end
               if (p1.text.isTodo() != p2.text.isTodo()) {
@@ -621,8 +659,8 @@ class ParagraphListBuilder(
               if (p1.doc == p2.doc) {
                 if (p1.doc) {
                   // Sort @return after @param etc
-                  val r1 = docTagRank(p1.text)
-                  val r2 = docTagRank(p2.text)
+                  val r1 = docTagRank(p1.text, isPriority1)
+                  val r2 = docTagRank(p2.text, isPriority2)
                   if (r1 != r2) {
                     return r1 - r2
                   }
@@ -728,7 +766,7 @@ class ParagraphListBuilder(
         if (paragraph.doc || text.startsWith("<li>", true) || text.isTodo()) {
           paragraph.hangingIndent = getIndent(options.hangingIndent)
         } else if (paragraph.continuation && paragraph.prev != null) {
-          paragraph.hangingIndent = paragraph.prev!!.hangingIndent
+          paragraph.hangingIndent = checkNotNull(paragraph.prev).hangingIndent
           // Dedent to match hanging indent
           val s = paragraph.text.trimStart()
           paragraph.content.clear()
@@ -808,7 +846,7 @@ class ParagraphListBuilder(
       return
     }
     val last = paragraphs.last()
-    if (last.preformatted || last.doc || last.hanging && !last.continuation || last.isEmpty()) {
+    if (last.preformatted || last.doc || (last.hanging && !last.continuation) || last.isEmpty()) {
       return
     }
 
@@ -840,7 +878,7 @@ fun String.containsOnly(vararg s: Char): Boolean {
   return true
 }
 
-fun StringBuilder.startsWithUpperCaseLetter() =
+fun StringBuilder.startsWithUpperCaseLetter(): Boolean =
     this.isNotEmpty() && this[0].isUpperCase() && this[0].isLetter()
 
-fun Char.isCloseSquareBracket() = this == ']'
+fun Char.isCloseSquareBracket(): Boolean = this == ']'

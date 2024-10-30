@@ -17,9 +17,8 @@
 package com.facebook.ktfmt.format
 
 import com.facebook.ktfmt.debughelpers.printOps
-import com.facebook.ktfmt.format.FormattingOptions.Style.DROPBOX
-import com.facebook.ktfmt.format.FormattingOptions.Style.GOOGLE
-import com.facebook.ktfmt.format.RedundantElementRemover.dropRedundantElements
+import com.facebook.ktfmt.format.RedundantElementManager.addRedundantElements
+import com.facebook.ktfmt.format.RedundantElementManager.dropRedundantElements
 import com.facebook.ktfmt.format.WhitespaceTombstones.indexOfWhitespaceTombstone
 import com.facebook.ktfmt.kdoc.Escaping
 import com.facebook.ktfmt.kdoc.KDocCommentsHelper
@@ -32,7 +31,7 @@ import com.google.googlejavaformat.OpsBuilder
 import com.google.googlejavaformat.java.FormatterException
 import com.google.googlejavaformat.java.JavaOutput
 import org.jetbrains.kotlin.com.intellij.openapi.util.text.StringUtil
-import org.jetbrains.kotlin.com.intellij.openapi.util.text.StringUtilRt
+import org.jetbrains.kotlin.com.intellij.openapi.util.text.StringUtilRt.convertLineSeparators
 import org.jetbrains.kotlin.com.intellij.psi.PsiComment
 import org.jetbrains.kotlin.com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.com.intellij.psi.PsiElementVisitor
@@ -44,14 +43,27 @@ import org.jetbrains.kotlin.psi.psiUtil.startOffset
 object Formatter {
 
   @JvmField
-  val GOOGLE_FORMAT = FormattingOptions(style = GOOGLE, blockIndent = 2, continuationIndent = 2)
+  val META_FORMAT =
+      FormattingOptions(
+          blockIndent = 2,
+          continuationIndent = 4,
+          manageTrailingCommas = false,
+      )
+
+  @JvmField
+  val GOOGLE_FORMAT =
+      FormattingOptions(
+          blockIndent = 2,
+          continuationIndent = 2,
+      )
 
   /** A format that attempts to reflect https://kotlinlang.org/docs/coding-conventions.html. */
   @JvmField
-  val KOTLINLANG_FORMAT = FormattingOptions(style = GOOGLE, blockIndent = 4, continuationIndent = 4)
-
-  @JvmField
-  val DROPBOX_FORMAT = FormattingOptions(style = DROPBOX, blockIndent = 4, continuationIndent = 4)
+  val KOTLINLANG_FORMAT =
+      FormattingOptions(
+          blockIndent = 4,
+          continuationIndent = 4,
+      )
 
   private val MINIMUM_KOTLIN_VERSION = KotlinVersion(1, 4)
 
@@ -61,7 +73,7 @@ object Formatter {
    */
   @JvmStatic
   @Throws(FormatterException::class, ParseError::class)
-  fun format(code: String): String = format(FormattingOptions(), code)
+  fun format(code: String): String = format(META_FORMAT, code)
 
   /**
    * format formats the Kotlin code given in 'code' with 'removeUnusedImports' and returns it as a
@@ -70,7 +82,7 @@ object Formatter {
   @JvmStatic
   @Throws(FormatterException::class, ParseError::class)
   fun format(code: String, removeUnusedImports: Boolean): String =
-      format(FormattingOptions(removeUnusedImports = removeUnusedImports), code)
+      format(META_FORMAT.copy(removeUnusedImports = removeUnusedImports), code)
 
   /**
    * format formats the Kotlin code given in 'code' with the 'maxWidth' and returns it as a string.
@@ -86,12 +98,14 @@ object Formatter {
         }
     checkEscapeSequences(kotlinCode)
 
-    val lfCode = StringUtilRt.convertLineSeparators(kotlinCode)
-    val sortedImports = sortedAndDistinctImports(lfCode)
-    val noRedundantElements = dropRedundantElements(sortedImports, options)
-    val prettyCode =
-        prettyPrint(noRedundantElements, options, Newlines.guessLineSeparator(kotlinCode)!!)
-    return if (shebang.isNotEmpty()) shebang + "\n" + prettyCode else prettyCode
+    return kotlinCode
+        .let { convertLineSeparators(it) }
+        .let { sortedAndDistinctImports(it) }
+        .let { dropRedundantElements(it, options) }
+        .let { prettyPrint(it, options, "\n") }
+        .let { addRedundantElements(it, options) }
+        .let { convertLineSeparators(it, checkNotNull(Newlines.guessLineSeparator(kotlinCode))) }
+        .let { if (shebang.isEmpty()) it else shebang + "\n" + it }
   }
 
   /** prettyPrint reflows 'code' using google-java-format's engine. */
