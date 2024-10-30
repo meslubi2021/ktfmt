@@ -97,6 +97,10 @@ Consider using [Spotless](https://github.com/diffplug/spotless) with the
 A [pre-commit hook](https://pre-commit.com/hooks.html) is implemented in
 [language-formatters-pre-commit-hooks](https://github.com/macisamuele/language-formatters-pre-commit-hooks)
 
+### using pre-commit hooks
+
+A [pre-commit hook](https://pre-commit.com/hooks.html) is implemented in [language-formatters-pre-commit-hooks](https://github.com/macisamuele/language-formatters-pre-commit-hooks)
+
 ## FAQ
 
 ### `ktfmt` vs `ktlint` vs IntelliJ
