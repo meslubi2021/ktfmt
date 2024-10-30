@@ -160,6 +160,4 @@ However, we do offer an alternative style for projects that absolutely cannot ma
 
 See [RELEASING.md](RELEASING.md).
 
-## License
 
-Mit License 
